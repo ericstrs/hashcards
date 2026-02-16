@@ -35,6 +35,7 @@ pub struct ServerState {
     pub directory: PathBuf,
     pub macros: Vec<(String, String)>,
     pub total_cards: usize,
+    pub cards_done_offset: usize,
     pub session_started_at: Timestamp,
     pub mutable: Arc<Mutex<MutableState>>,
     pub shutdown_tx: Arc<Mutex<Option<Sender<()>>>>,

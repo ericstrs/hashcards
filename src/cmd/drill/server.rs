@@ -119,10 +119,17 @@ pub async fn start_server(config: ServerConfig) -> Fallible<()> {
         .filter(|card| due_today.contains(&card.hash()))
         .collect::<Vec<_>>();
 
+    // Subtract today's already-reviewed cards from the card limit so it acts
+    // as a daily budget rather than a per-session budget.
+    let reviewed_today = db.count_reviews_in_date(today)?;
+    let card_limit = config
+        .card_limit
+        .map(|limit| limit.saturating_sub(reviewed_today));
+
     let due_today: Vec<Card> = filter_deck(
         &db,
         due_today,
-        config.card_limit,
+        card_limit,
         config.new_card_limit,
         config.deck_filter,
     )?;
@@ -165,6 +172,7 @@ pub async fn start_server(config: ServerConfig) -> Fallible<()> {
         directory,
         macros,
         total_cards: due_today.len(),
+        cards_done_offset: reviewed_today,
         session_started_at: config.session_started_at,
         mutable: Arc::new(Mutex::new(MutableState {
             reveal: false,

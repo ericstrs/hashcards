@@ -54,8 +54,8 @@ async fn inner(state: ServerState) -> Fallible<Markup> {
 
 fn render_session_page(state: &ServerState, mutable: &MutableState) -> Fallible<Markup> {
     let undo_disabled = mutable.reviews.is_empty();
-    let total_cards = state.total_cards;
-    let cards_done = state.total_cards - mutable.cards.len();
+    let total_cards = state.total_cards + state.cards_done_offset;
+    let cards_done = state.cards_done_offset + state.total_cards - mutable.cards.len();
     let percent_done = if total_cards == 0 {
         100
     } else {
