@@ -15,6 +15,7 @@
 mod cli;
 mod cmd;
 mod collection;
+mod config;
 mod db;
 mod error;
 mod fsrs;

@@ -114,6 +114,9 @@ fn render_session_page(state: &ServerState, mutable: &MutableState) -> Fallible<
                 div.progress-bar {
                     div.progress-fill style=(progress_bar_style) {}
                 }
+                div.progress-count {
+                    (cards_done) " / " (total_cards)
+                }
             }
             div.card-container {
                 div.card {

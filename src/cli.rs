@@ -27,6 +27,8 @@ use crate::cmd::orphans::delete_orphans;
 use crate::cmd::orphans::list_orphans;
 use crate::cmd::stats::StatsFormat;
 use crate::cmd::stats::print_stats;
+use crate::collection::resolve_directory;
+use crate::config::load_config;
 use crate::error::Fallible;
 use crate::types::timestamp::Timestamp;
 use crate::utils::wait_for_server;
@@ -45,11 +47,11 @@ enum Command {
         #[arg(long)]
         new_card_limit: Option<usize>,
         /// The host address to bind to. Default is 127.0.0.1.
-        #[arg(long, default_value = "127.0.0.1")]
-        host: String,
+        #[arg(long)]
+        host: Option<String>,
         /// The port to use for the web server. Default is 8000.
-        #[arg(long, default_value_t = 8000)]
-        port: u16,
+        #[arg(long)]
+        port: Option<u16>,
         /// Only drill cards from this deck.
         #[arg(long)]
         from_deck: Option<String>,
@@ -57,8 +59,8 @@ enum Command {
         #[arg(long)]
         open_browser: Option<bool>,
         /// Which answer controls to show:
-        #[arg(long, default_value_t = AnswerControls::Full)]
-        answer_controls: AnswerControls,
+        #[arg(long)]
+        answer_controls: Option<AnswerControls>,
         /// Whether or not to bury siblings. Default is true.
         #[arg(long)]
         bury_siblings: Option<bool>,
@@ -119,7 +121,31 @@ pub async fn entrypoint() -> Fallible<()> {
             answer_controls,
             bury_siblings,
         } => {
-            if open_browser.unwrap_or(true) {
+            // Resolve directory and load config file.
+            let resolved_dir = resolve_directory(directory)?;
+            let file_config = load_config(&resolved_dir)?;
+            let dc = file_config.drill;
+
+            // Merge: CLI arg > config file > hardcoded default.
+            let host = host
+                .or(dc.host)
+                .unwrap_or_else(|| "127.0.0.1".to_string());
+            let port = port.or(dc.port).unwrap_or(8000);
+            let card_limit = card_limit.or(dc.card_limit);
+            let new_card_limit = new_card_limit.or(dc.new_card_limit);
+            let open_browser = open_browser.or(dc.open_browser).unwrap_or(true);
+            let bury_siblings = bury_siblings.or(dc.bury_siblings).unwrap_or(true);
+            let answer_controls = answer_controls
+                .or_else(|| {
+                    dc.answer_controls.as_deref().and_then(|s| match s {
+                        "full" => Some(AnswerControls::Full),
+                        "binary" => Some(AnswerControls::Binary),
+                        _ => None,
+                    })
+                })
+                .unwrap_or(AnswerControls::Full);
+
+            if open_browser {
                 // Start a separate task to open the browser once the server is up.
                 let browser_host = host.clone();
                 spawn(async move {
@@ -135,7 +161,7 @@ pub async fn entrypoint() -> Fallible<()> {
                 });
             }
             let config = ServerConfig {
-                directory,
+                directory: Some(resolved_dir.to_string_lossy().into_owned()),
                 host,
                 port,
                 session_started_at: Timestamp::now(),
@@ -144,7 +170,7 @@ pub async fn entrypoint() -> Fallible<()> {
                 deck_filter: from_deck,
                 shuffle: true,
                 answer_controls,
-                bury_siblings: bury_siblings.unwrap_or(true),
+                bury_siblings,
             };
             start_server(config).await
         }

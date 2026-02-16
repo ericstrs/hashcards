@@ -53,6 +53,14 @@ body {
                 background: palegreen;
             }
         }
+
+        .progress-count {
+            margin-left: 24px;
+            font-family: system-ui, -apple-system, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            color: #666;
+            font-variant-numeric: tabular-nums;
+        }
     }
 
     .card-container {

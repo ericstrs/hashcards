@@ -32,17 +32,21 @@ pub struct Collection {
     pub macros: Vec<(String, String)>,
 }
 
+pub fn resolve_directory(directory: Option<String>) -> Fallible<PathBuf> {
+    let directory: PathBuf = match directory {
+        Some(dir) => PathBuf::from(dir),
+        None => current_dir()?,
+    };
+    if directory.exists() {
+        Ok(directory.canonicalize()?)
+    } else {
+        fail("directory does not exist.")
+    }
+}
+
 impl Collection {
     pub fn new(directory: Option<String>) -> Fallible<Self> {
-        let directory: PathBuf = match directory {
-            Some(dir) => PathBuf::from(dir),
-            None => current_dir()?,
-        };
-        let directory: PathBuf = if directory.exists() {
-            directory.canonicalize()?
-        } else {
-            return fail("directory does not exist.");
-        };
+        let directory: PathBuf = resolve_directory(directory)?;
 
         let db_path: PathBuf = directory.join("hashcards.db");
         let db_path: &str = db_path
