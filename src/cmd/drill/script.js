@@ -45,6 +45,11 @@ document.addEventListener("keydown", function (event) {
     return;
   }
 
+  // Ignore modifiers.
+  if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
+    return;
+  }
+
   const keybindings = {
     " ": "reveal", // Space
     u: "undo",
@@ -52,15 +57,29 @@ document.addEventListener("keydown", function (event) {
     2: "hard",
     3: "good",
     4: "easy",
+    p: "play-audio",
   };
 
   if (keybindings[event.key]) {
-    // Ignore modifiers.
-    if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
-      return;
-    }
     event.preventDefault();
     const id = keybindings[event.key];
+
+    // Play/pause audio.
+    if (id === "play-audio") {
+      const audio = document.querySelector("audio");
+      if (audio) {
+        audio.paused ? audio.play() : audio.pause();
+      }
+      return;
+    }
+
+    // If the card isn't revealed yet, number keys reveal first.
+    const reveal = document.getElementById("reveal");
+    if (reveal && id !== "reveal" && id !== "undo") {
+      reveal.click();
+      return;
+    }
+
     const node = document.getElementById(id);
     if (node) {
       node.click();
